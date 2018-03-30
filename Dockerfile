@@ -1,24 +1,18 @@
-FROM debian:stretch
-MAINTAINER Carlos Kazuo
+FROM openjdk:8-jre-alpine
 
-ENV VALIDATOR_RELEASE_VERSION 17.11.1
+ARG VALIDATOR_RELEASE_VERSION=18.3.0
 ENV VALIDATOR_FILE vnu.jar_${VALIDATOR_RELEASE_VERSION}.zip
 ENV VALIDATOR_ZIP https://github.com/validator/validator/releases/download/${VALIDATOR_RELEASE_VERSION}/vnu.jar_${VALIDATOR_RELEASE_VERSION}.zip
 
-RUN echo "deb http://ftp.debian.org/debian stretch-backports main" >> /etc/apt/sources.list && \
-    apt-get update && \
-    apt-get install -y \
-      openjdk-8-jre-headless \
-      unzip \
-      wget && \
-    apt-get clean
+RUN apk add --no-cache --virtual .build-deps unzip wget \
+    && wget -q ${VALIDATOR_ZIP} \
+    && unzip -q ${VALIDATOR_FILE} \
+    && mv dist/vnu.jar / \
+    && rm -rf dist \
+    && apk del .build-deps
 
-RUN wget ${VALIDATOR_ZIP} && \
-    unzip ${VALIDATOR_FILE} && \
-    mv dist/vnu.jar / && \
-    rm -rf dist
-
-ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
+RUN echo -e '#!/bin/ash\njava -jar /vnu.jar $@' > /usr/bin/validator && \
+  chmod +x /usr/bin/validator
 
 EXPOSE 8888
 
